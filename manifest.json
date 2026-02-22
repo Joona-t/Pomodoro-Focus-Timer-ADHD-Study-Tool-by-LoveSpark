@@ -18,8 +18,7 @@
       "matches": ["<all_urls>"],
       "css": ["content-overlay.css"],
       "js": ["lib/browser-polyfill.min.js", "content-overlay.js"],
-      "run_at": "document_idle",
-      "exclude_matches": ["chrome://*/*", "chrome-extension://*/*"]
+      "run_at": "document_idle"
     }
   ],
   "action": {
