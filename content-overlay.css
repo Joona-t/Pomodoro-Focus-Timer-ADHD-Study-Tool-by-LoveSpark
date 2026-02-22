@@ -1,0 +1,19 @@
+/* LoveSpark Focus — content-overlay.css
+   Host element positioning ONLY.
+   All widget styles live inside the Shadow DOM in content-overlay.js.
+*/
+
+#lovespark-focus-overlay {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  right: 20px !important;
+  bottom: 80px !important;
+  top: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}

@@ -1,0 +1,143 @@
+/* LoveSpark Focus — blocked.css */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:       #1a0a12;
+  --surface:  #2d0a1a;
+  --pink-hot: #FF69B4;
+  --pink-light: #FFB6C1;
+  --pink-dim: #c04880;
+  --glow:     rgba(255, 105, 180, 0.45);
+  --text:     #FCE4EC;
+  --muted:    #8a4a65;
+  --border:   rgba(255, 105, 180, 0.18);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Mono', 'Courier New', monospace;
+  color: var(--text);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.blocked-container {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 420px;
+  padding: 40px 32px;
+  background: var(--surface);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 30px rgba(255,105,180,0.08);
+}
+
+.flower {
+  font-size: 52px;
+  animation: gentle-spin 8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes gentle-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--pink-hot);
+  text-shadow: 0 0 16px var(--glow);
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+.timer-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 105, 180, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 36px;
+}
+
+.timer-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.timer-display {
+  font-size: 42px;
+  font-weight: 500;
+  color: var(--pink-light);
+  text-shadow: 0 0 20px var(--glow);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.message {
+  font-size: 14px;
+  color: var(--pink-light);
+  letter-spacing: 0.02em;
+  font-style: italic;
+}
+
+.back-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--pink-hot), var(--pink-dim));
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 16px rgba(255, 105, 180, 0.35);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+
+.back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 105, 180, 0.5);
+}
+
+.back-btn:active {
+  transform: scale(0.97);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

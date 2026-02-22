@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoveSpark Focus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <img src="icons/icon-48.png" alt="Focus" class="logo">
+        <div class="title-block">
+          <span class="title">LoveSpark</span>
+          <span class="subtitle">Focus</span>
+        </div>
+      </div>
+      <button class="settings-btn" id="settings-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Session type selector -->
+    <div class="session-tabs">
+      <button class="tab active" data-type="focus">Focus</button>
+      <button class="tab" data-type="shortBreak">Short Break</button>
+      <button class="tab" data-type="longBreak">Long Break</button>
+    </div>
+
+    <!-- Progress ring + countdown -->
+    <div class="ring-container">
+      <svg class="progress-ring" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FF69B4"/>
+            <stop offset="100%" stop-color="#C084FC"/>
+          </linearGradient>
+        </defs>
+        <!-- Track ring -->
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#2d0a1a" stroke-width="8"/>
+        <!-- Progress ring -->
+        <circle id="progress-ring-circle"
+          cx="60" cy="60" r="52" fill="none"
+          stroke="url(#pinkGradient)"
+          stroke-width="8"
+          stroke-linecap="round"
+          stroke-dasharray="326.73"
+          stroke-dashoffset="0"
+          transform="rotate(-90 60 60)"/>
+      </svg>
+
+      <div class="ring-content">
+        <div class="countdown" id="countdown">25:00</div>
+      </div>
+    </div>
+
+    <!-- Session type label -->
+    <div class="session-label" id="session-label">F O C U S</div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-start">▶ Start</button>
+      <button class="btn btn-secondary" id="btn-reset" disabled>↺ Reset</button>
+    </div>
+
+    <!-- Session dots -->
+    <div class="dots-row" id="dots-row">
+      <span class="dot" data-pos="0"></span>
+      <span class="dot" data-pos="1"></span>
+      <span class="dot" data-pos="2"></span>
+      <span class="dot" data-pos="3"></span>
+    </div>
+
+    <!-- Stats footer -->
+    <div class="stats-footer">
+      <span class="stat-item" id="stat-today">Today: 0 sessions ✨</span>
+      <span class="stat-sep">·</span>
+      <span class="stat-item blocking-indicator" id="blocking-indicator" style="display:none">🔒 Blocking</span>
+    </div>
+
+    <!-- Sparkle overlay (shown on session transition) -->
+    <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

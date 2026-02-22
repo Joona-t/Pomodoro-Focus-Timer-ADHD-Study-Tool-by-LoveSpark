@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "LoveSpark Focus",
+  "version": "1.0.0",
+  "description": "Cute Pomodoro timer with site blocking for focused work sessions 💕",
+  "permissions": [
+    "storage",
+    "alarms",
+    "declarativeNetRequest",
+    "notifications"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["content-overlay.css"],
+      "js": ["lib/browser-polyfill.min.js", "content-overlay.js"],
+      "run_at": "document_idle",
+      "exclude_matches": ["chrome://*/*", "chrome-extension://*/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "declarative_net_request": {
+    "rule_resources": []
+  },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focus@lovespark.suite",
+      "strict_min_version": "109.0"
+    }
+  }
+}
