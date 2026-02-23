@@ -31,6 +31,9 @@
       <button class="tab" data-type="longBreak">Long Break</button>
     </div>
 
+    <!-- Task input -->
+    <input type="text" class="task-input" id="task-input" placeholder="What are you focusing on? 🌸" maxlength="120" spellcheck="false">
+
     <!-- Progress ring + countdown -->
     <div class="ring-container">
       <svg class="progress-ring" viewBox="0 0 120 120" aria-hidden="true">
@@ -58,8 +61,9 @@
       </div>
     </div>
 
-    <!-- Session type label -->
+    <!-- Session type label / current task -->
     <div class="session-label" id="session-label">F O C U S</div>
+    <div class="current-task" id="current-task" style="display:none"></div>
 
     <!-- Buttons -->
     <div class="btn-row">
@@ -73,6 +77,16 @@
       <span class="dot" data-pos="1"></span>
       <span class="dot" data-pos="2"></span>
       <span class="dot" data-pos="3"></span>
+    </div>
+
+    <!-- Completed tasks -->
+    <div class="completed-section" id="completed-section" style="display:none">
+      <button class="completed-toggle" id="completed-toggle">
+        <span class="completed-toggle-arrow" id="completed-arrow">▸</span>
+        Completed <span class="completed-count" id="completed-count">(0)</span>
+      </button>
+      <div class="completed-list" id="completed-list" style="display:none"></div>
+      <button class="btn-clear-tasks" id="btn-clear-tasks" style="display:none">Clear completed</button>
     </div>
 
     <!-- Stats footer -->

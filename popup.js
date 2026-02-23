@@ -22,6 +22,8 @@ const SESSION_COLORS = {
 const countdown      = document.getElementById('countdown');
 const ringCircle     = document.getElementById('progress-ring-circle');
 const sessionLabel   = document.getElementById('session-label');
+const currentTaskEl  = document.getElementById('current-task');
+const taskInput      = document.getElementById('task-input');
 const btnStart       = document.getElementById('btn-start');
 const btnReset       = document.getElementById('btn-reset');
 const dotsRow        = document.getElementById('dots-row');
@@ -30,6 +32,12 @@ const blockingInd    = document.getElementById('blocking-indicator');
 const sparklesEl     = document.getElementById('sparkles');
 const settingsBtn    = document.getElementById('settings-btn');
 const tabs           = document.querySelectorAll('.tab');
+const completedSection = document.getElementById('completed-section');
+const completedToggle  = document.getElementById('completed-toggle');
+const completedArrow   = document.getElementById('completed-arrow');
+const completedCount   = document.getElementById('completed-count');
+const completedList    = document.getElementById('completed-list');
+const btnClearTasks    = document.getElementById('btn-clear-tasks');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -37,6 +45,7 @@ let timerData = {};
 let tickInterval = null;
 let lastSessionType = null;
 let lastTimerState = null;
+let completedTasksOpen = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -113,6 +122,21 @@ function render() {
   if (sessionType === 'shortBreak') sessionLabel.classList.add('break');
   if (sessionType === 'longBreak')  sessionLabel.classList.add('long');
 
+  // Current task display
+  const task = data.currentTask || '';
+  if (task && state !== 'idle') {
+    currentTaskEl.textContent = task;
+    currentTaskEl.style.display = '';
+  } else {
+    currentTaskEl.style.display = 'none';
+  }
+
+  // Task input: disabled while running/paused, show current task text
+  taskInput.disabled = state !== 'idle';
+  if (state === 'idle' && !taskInput.matches(':focus')) {
+    taskInput.value = task;
+  }
+
   // Buttons
   if (state === 'running') {
     btnStart.textContent = '⏸ Pause';
@@ -159,9 +183,23 @@ function render() {
 
 // ── Tick ──────────────────────────────────────────────────────────────────────
 
+function sendBadgeUpdate() {
+  if (timerData.timerState !== 'running' || !timerData.endTime) return;
+  const remaining = Math.max(0, Math.ceil((timerData.endTime - Date.now()) / 1000));
+  const mm = Math.floor(remaining / 60);
+  chrome.runtime.sendMessage({
+    action: 'UPDATE_BADGE',
+    text: remaining > 0 ? `${mm}m` : '',
+    sessionType: timerData.sessionType,
+  }).catch(() => {});
+}
+
 function startTick() {
   stopTick();
-  tickInterval = setInterval(render, 1000);
+  tickInterval = setInterval(() => {
+    render();
+    sendBadgeUpdate();
+  }, 1000);
 }
 
 function stopTick() {
@@ -193,7 +231,11 @@ function triggerSparkles() {
 async function loadState() {
   timerData = await chrome.runtime.sendMessage({ action: 'GET_STATE' });
   render();
-  if (timerData.timerState === 'running') startTick();
+  renderCompletedTasks(timerData.completedTasks || []);
+  if (timerData.timerState === 'running') {
+    startTick();
+    sendBadgeUpdate();
+  }
 }
 
 // ── Event handlers ────────────────────────────────────────────────────────────
@@ -233,16 +275,63 @@ settingsBtn.addEventListener('click', () => {
   window.close();
 });
 
+// Task input — save on blur/enter
+taskInput.addEventListener('input', () => {
+  chrome.storage.local.set({ currentTask: taskInput.value.trim() });
+});
+
+taskInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') taskInput.blur();
+});
+
+// Completed tasks toggle
+completedToggle.addEventListener('click', () => {
+  completedTasksOpen = !completedTasksOpen;
+  completedList.style.display = completedTasksOpen ? '' : 'none';
+  btnClearTasks.style.display = completedTasksOpen ? '' : 'none';
+  completedArrow.classList.toggle('open', completedTasksOpen);
+});
+
+// Clear completed tasks
+btnClearTasks.addEventListener('click', () => {
+  if (confirm('Clear all completed tasks?')) {
+    chrome.storage.local.set({ completedTasks: [] });
+    renderCompletedTasks([]);
+  }
+});
+
+function renderCompletedTasks(tasks) {
+  if (!tasks || tasks.length === 0) {
+    completedSection.style.display = 'none';
+    return;
+  }
+  completedSection.style.display = '';
+  completedCount.textContent = `(${tasks.length})`;
+  completedList.innerHTML = '';
+  // Show most recent first
+  const sorted = [...tasks].reverse();
+  for (const task of sorted) {
+    const item = document.createElement('div');
+    item.className = 'completed-item';
+    item.innerHTML = `<span class="check">✓</span><span class="task-text"></span>`;
+    item.querySelector('.task-text').textContent = task.text;
+    completedList.appendChild(item);
+  }
+}
+
 // Storage changes (e.g., session auto-transitions while popup is open)
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   let needsRefresh = false;
   for (const key of Object.keys(changes)) {
     if (['timerState', 'sessionType', 'endTime', 'remainingSeconds',
-         'currentCyclePosition', 'sessionsCompletedToday'].includes(key)) {
+         'currentCyclePosition', 'sessionsCompletedToday', 'currentTask'].includes(key)) {
       timerData[key] = changes[key].newValue;
       needsRefresh = true;
     }
+  }
+  if (changes.completedTasks) {
+    renderCompletedTasks(changes.completedTasks.newValue || []);
   }
   if (needsRefresh) {
     render();

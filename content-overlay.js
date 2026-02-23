@@ -272,10 +272,27 @@ function updateDisplay() {
   }
 }
 
+function sendBadgeUpdate() {
+  const data = currentState;
+  if (data.timerState !== 'running' || !data.endTime) return;
+  const remaining = Math.max(0, Math.ceil((data.endTime - Date.now()) / 1000));
+  const mm = Math.floor(remaining / 60);
+  const isBreak = data.sessionType === 'shortBreak' || data.sessionType === 'longBreak';
+  chrome.runtime.sendMessage({
+    action: 'UPDATE_BADGE',
+    text: remaining > 0 ? `${mm}m` : '',
+    sessionType: data.sessionType,
+  }).catch(() => {});
+}
+
 function startTick() {
   stopTick();
   updateDisplay();
-  tickInterval = setInterval(updateDisplay, 1000);
+  sendBadgeUpdate();
+  tickInterval = setInterval(() => {
+    updateDisplay();
+    sendBadgeUpdate();
+  }, 1000);
 }
 
 function stopTick() {

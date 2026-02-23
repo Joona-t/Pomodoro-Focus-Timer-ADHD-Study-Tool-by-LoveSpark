@@ -33,6 +33,10 @@ const DEFAULTS = {
   ],
   siteBlockingEnabled: true,
 
+  // Tasks
+  currentTask: '',
+  completedTasks: [],
+
   // Overlay
   overlayVisible: true,
   overlayMinimized: false,
@@ -110,10 +114,10 @@ async function updateBadge() {
 
   if (data.timerState === 'running' && data.endTime) {
     const remaining = Math.max(0, Math.ceil((data.endTime - Date.now()) / 1000));
-    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-    const ss = String(remaining % 60).padStart(2, '0');
-    chrome.action.setBadgeText({ text: `${mm}:${ss}` });
-    chrome.action.setBadgeBackgroundColor({ color: '#FF69B4' });
+    const mm = Math.floor(remaining / 60);
+    chrome.action.setBadgeText({ text: `${mm}m` });
+    const isBreak = data.sessionType === 'shortBreak' || data.sessionType === 'longBreak';
+    chrome.action.setBadgeBackgroundColor({ color: isBreak ? '#C084FC' : '#FF69B4' });
     chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
   } else if (data.timerState === 'paused') {
     chrome.action.setBadgeText({ text: '⏸' });
@@ -227,6 +231,20 @@ async function handleSessionComplete() {
       updates.sessionsCompletedToday = 1;
       updates.lastResetDate = today;
     }
+
+    // Save completed task
+    const taskText = (data.currentTask || '').trim();
+    if (taskText) {
+      const durationKey = 'focusDuration';
+      const completedTasks = data.completedTasks || [];
+      completedTasks.push({
+        text: taskText,
+        completedAt: new Date().toISOString(),
+        duration: data[durationKey] || 25,
+      });
+      updates.completedTasks = completedTasks;
+    }
+    updates.currentTask = '';
   }
 
   // Determine next session type
@@ -439,6 +457,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           totalSessionsCompleted: 0,
           lastResetDate: today,
         });
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'UPDATE_BADGE': {
+        // Popup sends real-time badge updates every second
+        const badgeText = message.text || '';
+        chrome.action.setBadgeText({ text: badgeText });
+        const isBreak = message.sessionType === 'shortBreak' || message.sessionType === 'longBreak';
+        chrome.action.setBadgeBackgroundColor({ color: isBreak ? '#C084FC' : '#FF69B4' });
+        chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
         sendResponse({ ok: true });
         break;
       }
