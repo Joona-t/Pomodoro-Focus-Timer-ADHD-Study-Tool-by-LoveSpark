@@ -1,6 +1,24 @@
 // LoveSpark Focus — popup.js
 'use strict';
 
+// ── Dark mode ────────────────────────────────────────────────────────────────
+
+chrome.storage.local.get(['darkMode'], ({ darkMode }) => {
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  const btn = document.getElementById('btnDarkMode');
+  if (btn) btn.textContent = darkMode ? '☀️' : '🌙';
+});
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  chrome.storage.local.set({ darkMode: !isDark });
+  const btn = document.getElementById('btnDarkMode');
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️';
+}
+
+document.getElementById('btnDarkMode').addEventListener('click', toggleTheme);
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const CIRCUMFERENCE = 2 * Math.PI * 52; // 326.73
