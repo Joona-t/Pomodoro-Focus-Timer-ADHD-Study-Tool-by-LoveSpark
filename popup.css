@@ -31,7 +31,7 @@
 }
 
 html, body {
-  width: 300px;
+  width: 340px;
   background: var(--ls-bg-gradient);
   font-family: var(--ls-font-body);
   color: var(--ls-text-dark);
@@ -61,10 +61,11 @@ html, body {
   gap: 10px;
 }
 
-.logo {
-  width: 30px;
-  height: 30px;
+.sparky {
+  width: 42px;
+  height: auto;
   filter: drop-shadow(0 0 5px rgba(232, 69, 124, 0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
 }
 
 .title-block {
@@ -399,22 +400,79 @@ html, body {
   box-shadow: var(--ls-glow);
 }
 
-/* ── Stats footer ────────────────────────────────────────────────────────── */
+/* ── Stats card ──────────────────────────────────────────────────────────── */
 
-.stats-footer {
+.stats-card {
+  background: var(--ls-glass);
+  border: 1px solid var(--ls-glass-border);
+  border-radius: var(--ls-radius);
+  padding: 10px 14px;
+  backdrop-filter: blur(8px);
+}
+
+.stats-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  padding: 5px 0;
+}
+
+.stats-row + .stats-row { border-top: 1px solid var(--ls-glass-border); }
+.stats-label { font-size: 11px; color: var(--ls-text-dark); }
+
+.stats-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ls-pink-accent);
+  transition: all 0.3s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.blocking-indicator {
+  text-align: center;
   font-size: 10px;
-  color: var(--ls-text-muted);
+  color: var(--ls-pink-accent);
   letter-spacing: 0.03em;
 }
 
-.stat-sep { opacity: 0.5; }
+/* ── Sparky reactions ───────────────────────────────────────────────────── */
 
-.blocking-indicator {
-  color: var(--ls-pink-accent);
+.sparky.sparky-focusing {
+  animation: sparky-pulse 2s ease-in-out infinite;
+}
+
+.sparky.sparky-break {
+  animation: sparky-bounce 1.5s ease-in-out infinite;
+}
+
+.sparky.sparky-complete {
+  animation: sparky-celebrate 0.6s ease-out;
+}
+
+.sparky.sparky-longbreak {
+  animation: sparky-float 3s ease-in-out infinite;
+}
+
+@keyframes sparky-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(232, 69, 124, 0.5)); }
+}
+
+@keyframes sparky-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-3px) rotate(3deg); }
+  75%      { transform: translateY(-3px) rotate(-3deg); }
+}
+
+@keyframes sparky-celebrate {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.2); filter: drop-shadow(0 0 12px rgba(232, 69, 124, 0.6)); }
+  100% { transform: scale(1); }
+}
+
+@keyframes sparky-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
 }
 
 /* ── Sparkle animation ───────────────────────────────────────────────────── */
@@ -524,25 +582,6 @@ body.theme-slate {
 }
 
 /* ── Theme Tab ────────────────────────────────────────── */
-.theme-tab {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.08);
-  border: none;
-  border-radius: 999px;
-  padding: 3px 12px;
-  font-size: 10px;
-  font-style: italic;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  color: inherit;
-  transition: background 0.2s;
-  font-family: inherit;
-  z-index: 10;
-}
-.theme-tab:hover { background: rgba(0, 0, 0, 0.14); }
-
 body { transition: background 0.3s ease, color 0.3s ease; }
 
 /* ── prefers-reduced-motion ──────────────────────────────────────────────── */

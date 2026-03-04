@@ -1,6 +1,43 @@
 // LoveSpark Focus — settings.js
 'use strict';
 
+// Theme dropdown
+const THEMES = ['retro', 'dark', 'beige', 'slate'];
+const THEME_NAMES = { retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate' };
+function applyTheme(t) {
+  THEMES.forEach(n => document.body.classList.remove('theme-' + n));
+  document.body.classList.add('theme-' + t);
+  const label = document.getElementById('themeLabel');
+  if (label) label.textContent = THEME_NAMES[t] || t;
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.theme === t);
+  });
+}
+(function initThemeDropdown() {
+  const toggle = document.getElementById('themeToggle');
+  const menu = document.getElementById('themeMenu');
+  if (toggle && menu) {
+    toggle.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('open'); });
+    menu.addEventListener('click', (e) => {
+      const opt = e.target.closest('.theme-option');
+      if (!opt) return;
+      const theme = opt.dataset.theme;
+      applyTheme(theme);
+      chrome.storage.local.set({ theme });
+      menu.classList.remove('open');
+    });
+    document.addEventListener('click', () => menu.classList.remove('open'));
+  }
+  chrome.storage.local.get(['theme', 'darkMode'], ({ theme, darkMode }) => {
+    if (!theme && darkMode) theme = 'dark';
+    applyTheme(theme || 'retro');
+  });
+})();
+  if (!theme && darkMode) theme = 'dark';
+  applyTheme(theme || 'retro');
+});
+document.getElementById('themeToggle');
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let blockedSites = [];
 let cachedData = {};
@@ -29,6 +66,9 @@ const resetStatsBtn     = document.getElementById('reset-stats');
 const statToday         = document.getElementById('stat-today');
 const statTotal         = document.getElementById('stat-total');
 const statTime          = document.getElementById('stat-time');
+const statTotalTime     = document.getElementById('stat-total-time');
+const statStreakEl       = document.getElementById('stat-streak');
+const statLongestEl     = document.getElementById('stat-longest');
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -66,7 +106,7 @@ async function init() {
   renderSiteList();
 
   // Sound
-  soundEnabled.checked = data.soundEnabled !== false;
+  soundEnabled.checked = !!data.soundEnabled;
   const vol = Math.round((data.soundVolume ?? 0.5) * 100);
   soundVolume.value = vol;
   volumeDisplay.textContent = `${vol}%`;
@@ -82,32 +122,56 @@ async function init() {
 function renderStats(data) {
   statToday.textContent = data.sessionsCompletedToday || 0;
   statTotal.textContent = data.totalSessionsCompleted || 0;
-  const focusMinutes = (data.sessionsCompletedToday || 0) * (data.focusDuration || 25);
-  statTime.textContent = focusMinutes >= 60
-    ? `${(focusMinutes / 60).toFixed(1)}h`
-    : `${focusMinutes} min`;
+
+  const focusMinsToday = data.focusMinutesToday || 0;
+  statTime.textContent = focusMinsToday >= 60
+    ? `${(focusMinsToday / 60).toFixed(1)}h`
+    : `${focusMinsToday} min`;
+
+  const focusMinsTotal = data.focusMinutesTotal || 0;
+  if (statTotalTime) {
+    statTotalTime.textContent = focusMinsTotal >= 60
+      ? `${(focusMinsTotal / 60).toFixed(1)}h`
+      : `${focusMinsTotal} min`;
+  }
+
+  if (statStreakEl) statStreakEl.textContent = data.currentStreak || 0;
+  if (statLongestEl) statLongestEl.textContent = data.longestStreak || 0;
 }
 
 function renderSiteList() {
-  siteListEl.innerHTML = '';
+  // NOTE: escHtml sanitizes all domain strings before insertion
+  siteListEl.textContent = '';
   if (!blockedSites.length) {
-    siteListEl.innerHTML = '<li class="site-empty">No blocked sites 🌸</li>';
+    const empty = document.createElement('li');
+    empty.className = 'site-empty';
+    empty.textContent = 'No blocked sites 🌸';
+    siteListEl.appendChild(empty);
     return;
   }
   blockedSites.forEach(domain => {
     const li = document.createElement('li');
     li.className = 'site-item';
-    li.innerHTML = `
-      <span class="site-name">${escHtml(domain)}</span>
-      <button class="site-remove" data-domain="${escHtml(domain)}" aria-label="Remove ${escHtml(domain)}">✕</button>
-    `;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'site-name';
+    nameSpan.textContent = domain;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'site-remove';
+    removeBtn.dataset.domain = domain;
+    removeBtn.setAttribute('aria-label', `Remove ${domain}`);
+    removeBtn.textContent = '✕';
+
+    li.appendChild(nameSpan);
+    li.appendChild(removeBtn);
     siteListEl.appendChild(li);
   });
 }
 
 function updateVolumeGradient(pct) {
   soundVolume.style.background =
-    `linear-gradient(to right, #FF69B4 ${pct}%, #8a4a65 ${pct}%)`;
+    `linear-gradient(to right, var(--ls-pink-accent) ${pct}%, var(--ls-text-muted) ${pct}%)`;
 }
 
 // ── Duration controls ──────────────────────────────────────────────────────────
@@ -205,6 +269,10 @@ resetStatsBtn.addEventListener('click', async () => {
   await msg('RESET_STATS');
   cachedData.sessionsCompletedToday = 0;
   cachedData.totalSessionsCompleted = 0;
+  cachedData.focusMinutesToday = 0;
+  cachedData.focusMinutesTotal = 0;
+  cachedData.currentStreak = 0;
+  cachedData.longestStreak = 0;
   renderStats(cachedData);
 });
 

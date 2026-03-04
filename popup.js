@@ -1,26 +1,42 @@
 // LoveSpark Focus — popup.js
 'use strict';
 
-// ── Theme system ─────────────────────────────────────────────────────────────
-
-const THEMES = ['dark', 'retro', 'beige', 'slate'];
+// Theme dropdown
+const THEMES = ['retro', 'dark', 'beige', 'slate'];
+const THEME_NAMES = { retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate' };
 function applyTheme(t) {
   THEMES.forEach(n => document.body.classList.remove('theme-' + n));
   document.body.classList.add('theme-' + t);
-  const btn = document.getElementById('themeTab');
-  if (btn) btn.textContent = t;
+  const label = document.getElementById('themeLabel');
+  if (label) label.textContent = THEME_NAMES[t] || t;
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.theme === t);
+  });
 }
-function cycleTheme() {
-  const cur = THEMES.find(t => document.body.classList.contains('theme-' + t)) || 'retro';
-  const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
-  applyTheme(next);
-  chrome.storage.local.set({ theme: next });
-}
-chrome.storage.local.get(['theme', 'darkMode'], ({ theme, darkMode }) => {
+(function initThemeDropdown() {
+  const toggle = document.getElementById('themeToggle');
+  const menu = document.getElementById('themeMenu');
+  if (toggle && menu) {
+    toggle.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('open'); });
+    menu.addEventListener('click', (e) => {
+      const opt = e.target.closest('.theme-option');
+      if (!opt) return;
+      const theme = opt.dataset.theme;
+      applyTheme(theme);
+      chrome.storage.local.set({ theme });
+      menu.classList.remove('open');
+    });
+    document.addEventListener('click', () => menu.classList.remove('open'));
+  }
+  chrome.storage.local.get(['theme', 'darkMode'], ({ theme, darkMode }) => {
+    if (!theme && darkMode) theme = 'dark';
+    applyTheme(theme || 'retro');
+  });
+})();
   if (!theme && darkMode) theme = 'dark';
   applyTheme(theme || 'retro');
 });
-document.getElementById('themeTab').addEventListener('click', cycleTheme);
+document.getElementById('themeToggle');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -48,10 +64,13 @@ const taskInput      = document.getElementById('task-input');
 const btnStart       = document.getElementById('btn-start');
 const btnReset       = document.getElementById('btn-reset');
 const dotsRow        = document.getElementById('dots-row');
-const statToday      = document.getElementById('stat-today');
+const statSessions   = document.getElementById('stat-sessions');
+const statMinutes    = document.getElementById('stat-minutes');
+const statStreak     = document.getElementById('stat-streak');
 const blockingInd    = document.getElementById('blocking-indicator');
 const sparklesEl     = document.getElementById('sparkles');
 const settingsBtn    = document.getElementById('settings-btn');
+const sparkyEl       = document.getElementById('sparky');
 const tabs           = document.querySelectorAll('.tab');
 const completedSection = document.getElementById('completed-section');
 const completedToggle  = document.getElementById('completed-toggle');
@@ -98,27 +117,20 @@ function getRemainingSeconds(data) {
 
 // ── Ring update ────────────────────────────────────────────────────────────────
 
+const RING_GRADIENTS = {
+  focus: 'url(#pinkGradient)',
+  shortBreak: 'url(#purpleGradient)',
+  longBreak: 'url(#tealGradient)',
+};
+
 function updateRing(remaining, total) {
   const progress = total > 0 ? remaining / total : 1;
   const offset = CIRCUMFERENCE * (1 - progress);
   ringCircle.style.strokeDashoffset = offset;
 
-  // Color by session type
   const sessionType = timerData.sessionType || 'focus';
-  const color = SESSION_COLORS[sessionType];
-  ringCircle.style.stroke = `url(#pinkGradient)`;
-
-  // For break sessions, swap gradient colors dynamically
-  if (sessionType === 'shortBreak') {
-    ringCircle.setAttribute('stroke', '#C084FC');
-    ringCircle.style.stroke = '';
-  } else if (sessionType === 'longBreak') {
-    ringCircle.setAttribute('stroke', '#5EEAD4');
-    ringCircle.style.stroke = '';
-  } else {
-    ringCircle.removeAttribute('stroke');
-    ringCircle.style.stroke = 'url(#pinkGradient)';
-  }
+  ringCircle.removeAttribute('stroke');
+  ringCircle.style.stroke = RING_GRADIENTS[sessionType] || RING_GRADIENTS.focus;
 }
 
 // ── UI render ──────────────────────────────────────────────────────────────────
@@ -181,12 +193,27 @@ function render() {
   });
 
   // Stats
-  statToday.textContent = `Today: ${data.sessionsCompletedToday || 0} sessions ✨`;
+  statSessions.textContent = data.sessionsCompletedToday || 0;
+  const mins = data.focusMinutesToday || 0;
+  statMinutes.textContent = mins >= 60 ? `${(mins / 60).toFixed(1)}h` : `${mins} min`;
+  statStreak.textContent = `${data.currentStreak || 0} days`;
+
+  // Sparky reactions
+  if (sparkyEl) {
+    sparkyEl.className = 'sparky';
+    if (state === 'running' && sessionType === 'focus') {
+      sparkyEl.classList.add('sparky-focusing');
+    } else if (state === 'running' && sessionType === 'shortBreak') {
+      sparkyEl.classList.add('sparky-break');
+    } else if (state === 'running' && sessionType === 'longBreak') {
+      sparkyEl.classList.add('sparky-longbreak');
+    }
+  }
 
   // Blocking indicator
   const isBlocking = state !== 'idle' && sessionType === 'focus'
     && data.siteBlockingEnabled !== false;
-  blockingInd.style.display = isBlocking ? 'inline' : 'none';
+  blockingInd.style.display = isBlocking ? '' : 'none';
 
   // Active tab
   tabs.forEach(tab => {
@@ -245,6 +272,34 @@ function triggerSparkles() {
       el.addEventListener('animationend', () => el.remove());
     }, i * 120);
   });
+}
+
+// ── Sound ─────────────────────────────────────────────────────────────────────
+
+function playChime(volume, type) {
+  try {
+    const ctx = new AudioContext();
+    const vol = Math.max(0, Math.min(1, volume)) * 0.28;
+    const patterns = {
+      'focus-end':     [523.25, 659.25, 783.99],
+      'break-end':     [783.99, 659.25, 523.25],
+      'longbreak-end': [523.25, 659.25, 783.99, 1046.50],
+    };
+    const notes = patterns[type] || patterns['focus-end'];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + i * 0.3;
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.8);
+    });
+  } catch (e) {}
 }
 
 // ── Load state ────────────────────────────────────────────────────────────────
@@ -346,11 +401,27 @@ chrome.storage.onChanged.addListener((changes, area) => {
   let needsRefresh = false;
   for (const key of Object.keys(changes)) {
     if (['timerState', 'sessionType', 'endTime', 'remainingSeconds',
-         'currentCyclePosition', 'sessionsCompletedToday', 'currentTask'].includes(key)) {
+         'currentCyclePosition', 'sessionsCompletedToday', 'currentTask',
+         'focusMinutesToday', 'currentStreak'].includes(key)) {
       timerData[key] = changes[key].newValue;
       needsRefresh = true;
     }
   }
+
+  // Sparky celebration on session complete
+  if (changes.timerState?.newValue === 'idle' && changes.timerState?.oldValue === 'running' && sparkyEl) {
+    sparkyEl.classList.add('sparky-complete');
+    sparkyEl.addEventListener('animationend', () => sparkyEl.classList.remove('sparky-complete'), { once: true });
+  }
+
+  // Chime
+  if (changes.lastChimeTime) {
+    const vol = timerData.soundEnabled ? (timerData.soundVolume ?? 0.5) : 0;
+    const type = changes.lastChimeType?.newValue || timerData.lastChimeType || 'focus-end';
+    if (vol > 0) playChime(vol, type);
+  }
+  if (changes.lastChimeType) timerData.lastChimeType = changes.lastChimeType.newValue;
+
   if (changes.completedTasks) {
     renderCompletedTasks(changes.completedTasks.newValue || []);
   }
