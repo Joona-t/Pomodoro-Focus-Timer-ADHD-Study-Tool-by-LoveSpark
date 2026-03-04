@@ -279,8 +279,8 @@ async function handleSessionComplete() {
 
   if ((nextType !== 'focus' && autoStartBreaks) ||
       (nextType === 'focus' && autoStartFocus)) {
-    // Small delay so the notification clears first
-    setTimeout(() => startTimer(), 1500);
+    // Small delay so the notification clears first (alarm-safe for MV3 SW)
+    chrome.alarms.create('autoStart', { delayInMinutes: 1.5 / 60 });
   }
 
   await updateBadge();
@@ -373,6 +373,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   } else if (alarm.name === 'badgeTick') {
     await updateBadge();
+  } else if (alarm.name === 'autoStart') {
+    await startTimer();
   } else if (alarm.name === 'dailyReset') {
     const today = todayStr();
     const data = await get('lastResetDate');
@@ -497,4 +499,3 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Run on service worker boot
 initStorage();
-chrome.alarms.create('dailyReset', { periodInMinutes: 60 });

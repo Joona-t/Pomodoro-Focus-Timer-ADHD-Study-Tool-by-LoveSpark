@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -48,7 +48,11 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "focus@lovespark.suite",
-      "strict_min_version": "109.0"
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "is_exempt": true,
+        "justification": "This extension does not collect, transmit, or store any user data."
+      }
     }
   },
   "default_locale": "en"
