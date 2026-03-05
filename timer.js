@@ -236,9 +236,11 @@ function renderTasks() {
     const checkbox = document.createElement('button');
     checkbox.className = 'task-checkbox' + (task.completed ? ' checked' : '');
     checkbox.textContent = task.completed ? '\u2713' : '';
-    checkbox.addEventListener('click', (e) => {
+    checkbox.addEventListener('click', async (e) => {
       e.stopPropagation();
-      msg('COMPLETE_TASK', { taskId: task.id });
+      await msg('COMPLETE_TASK', { taskId: task.id });
+      timerData = await msg('GET_STATE');
+      renderTasks();
     });
 
     // Text (or edit input)
@@ -282,11 +284,16 @@ function renderTasks() {
     item.appendChild(menuBtn);
 
     // Click row body to set active
-    item.addEventListener('click', (e) => {
+    item.addEventListener('click', async (e) => {
       if (e.target.closest('.drag-handle') || e.target.closest('.task-checkbox') ||
           e.target.closest('.task-menu-btn') || e.target.closest('.task-action-menu') ||
           e.target.closest('.task-text-input')) return;
-      if (!task.completed) msg('SET_ACTIVE_TASK', { taskId: task.id });
+      if (!task.completed) {
+        await msg('SET_ACTIVE_TASK', { taskId: task.id });
+        timerData = await msg('GET_STATE');
+        render();
+        renderTasks();
+      }
     });
 
     // Render open menu if this task has one
@@ -319,10 +326,12 @@ function createTaskMenu(task) {
   const deleteBtn = document.createElement('button');
   deleteBtn.textContent = 'Delete';
   deleteBtn.className = 'delete-action';
-  deleteBtn.addEventListener('click', (e) => {
+  deleteBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     openMenuTaskId = null;
-    msg('DELETE_TASK', { taskId: task.id });
+    await msg('DELETE_TASK', { taskId: task.id });
+    timerData = await msg('GET_STATE');
+    renderTasks();
   });
 
   menu.appendChild(editBtn);
@@ -335,11 +344,12 @@ function toggleTaskMenu(taskId) {
   renderTasks();
 }
 
-function saveTaskEdit(taskId, newText) {
+async function saveTaskEdit(taskId, newText) {
   const trimmed = newText.trim();
   editingTaskId = null;
   if (trimmed) {
-    msg('UPDATE_TASK', { taskId, patch: { text: trimmed } });
+    await msg('UPDATE_TASK', { taskId, patch: { text: trimmed } });
+    timerData = await msg('GET_STATE');
   }
   renderTasks();
 }
@@ -385,7 +395,7 @@ function startDrag(e, index) {
     }
   };
 
-  const onEnd = () => {
+  const onEnd = async () => {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onEnd);
     document.removeEventListener('touchmove', onMove);
@@ -397,7 +407,14 @@ function startDrag(e, index) {
     if (draggedIndex !== null && dragOverIndex !== null) {
       let toIndex = dragOverIndex > draggedIndex ? dragOverIndex - 1 : dragOverIndex;
       if (toIndex !== draggedIndex) {
-        msg('REORDER_TASKS', { fromIndex: draggedIndex, toIndex });
+        try {
+          await msg('REORDER_TASKS', { fromIndex: draggedIndex, toIndex });
+        } catch (e) {
+          await new Promise(r => setTimeout(r, 200));
+          await msg('REORDER_TASKS', { fromIndex: draggedIndex, toIndex });
+        }
+        timerData = await msg('GET_STATE');
+        renderTasks();
       }
     }
 
@@ -437,14 +454,21 @@ pomoInc.addEventListener('click', () => {
   }
 });
 
-btnSaveTask.addEventListener('click', () => {
+btnSaveTask.addEventListener('click', async () => {
   const text = newTaskText.value.trim();
   if (!text) return;
-  msg('ADD_TASK', { text, estimatedPomos: pomoEstValue });
+  try {
+    await msg('ADD_TASK', { text, estimatedPomos: pomoEstValue });
+  } catch (e) {
+    await new Promise(r => setTimeout(r, 200));
+    await msg('ADD_TASK', { text, estimatedPomos: pomoEstValue });
+  }
   addTaskForm.classList.remove('open');
   newTaskText.value = '';
   pomoEstValue = 1;
   pomoEst.textContent = '1';
+  timerData = await msg('GET_STATE');
+  renderTasks();
 });
 
 btnCancelTask.addEventListener('click', () => {
@@ -456,8 +480,15 @@ newTaskText.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') addTaskForm.classList.remove('open');
 });
 
-btnClearDone.addEventListener('click', () => {
-  msg('CLEAR_COMPLETED_TASKS');
+btnClearDone.addEventListener('click', async () => {
+  try {
+    await msg('CLEAR_COMPLETED_TASKS');
+  } catch (e) {
+    await new Promise(r => setTimeout(r, 200));
+    await msg('CLEAR_COMPLETED_TASKS');
+  }
+  timerData = await msg('GET_STATE');
+  renderTasks();
 });
 
 // ── Tick ─────────────────────────────────────────────────────────────────────
