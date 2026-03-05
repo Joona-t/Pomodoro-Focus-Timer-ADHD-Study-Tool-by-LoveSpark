@@ -141,3 +141,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── Theme Title Visibility ── */
+body.theme-beige .title,
+body.theme-beige .header-title {
+  color: #4a7c59;
+}
+body.theme-slate .title,
+body.theme-slate .header-title {
+  color: #d4714e;
+}
