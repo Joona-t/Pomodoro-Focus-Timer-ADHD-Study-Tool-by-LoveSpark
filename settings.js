@@ -33,10 +33,6 @@ function applyTheme(t) {
     applyTheme(theme || 'retro');
   });
 })();
-  if (!theme && darkMode) theme = 'dark';
-  applyTheme(theme || 'retro');
-});
-document.getElementById('themeToggle');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let blockedSites = [];

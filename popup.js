@@ -33,10 +33,6 @@ function applyTheme(t) {
     applyTheme(theme || 'retro');
   });
 })();
-  if (!theme && darkMode) theme = 'dark';
-  applyTheme(theme || 'retro');
-});
-document.getElementById('themeToggle');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -351,6 +347,11 @@ settingsBtn.addEventListener('click', () => {
   window.close();
 });
 
+document.getElementById('btn-open-tab').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('timer.html') });
+  window.close();
+});
+
 // Task input — save on blur/enter
 taskInput.addEventListener('input', () => {
   chrome.storage.local.set({ currentTask: taskInput.value.trim() });
@@ -435,3 +436,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 loadState();
+
+/* ── Author / Ko-fi Footer ── */
+document.body.insertAdjacentHTML('beforeend', LoveSparkFooter.render());

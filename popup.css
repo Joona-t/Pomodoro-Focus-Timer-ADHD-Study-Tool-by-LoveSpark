@@ -90,6 +90,24 @@ html, body {
   text-transform: uppercase;
 }
 
+.open-tab-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 6px;
+  transition: background 0.15s, transform 0.15s;
+  line-height: 1;
+  color: var(--ls-text-muted);
+}
+
+.open-tab-btn:hover {
+  background: rgba(232, 69, 124, 0.1);
+  color: var(--ls-pink-accent);
+  transform: scale(1.1);
+}
+
 .settings-btn {
   background: none;
   border: none;

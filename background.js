@@ -41,6 +41,8 @@ const DEFAULTS = {
   // Tasks
   currentTask: '',
   completedTasks: [],
+  tasks: [],
+  activeTaskId: null,
 
   // Overlay
   overlayVisible: true,
@@ -285,6 +287,17 @@ async function handleSessionComplete() {
       updates.completedTasks = completedTasks;
     }
     updates.currentTask = '';
+
+    // Increment active task's completedPomos
+    const activeId = data.activeTaskId;
+    if (activeId) {
+      const tasks = [...(data.tasks || [])];
+      const idx = tasks.findIndex(t => t.id === activeId);
+      if (idx !== -1) {
+        tasks[idx] = { ...tasks[idx], completedPomos: (tasks[idx].completedPomos || 0) + 1 };
+        updates.tasks = tasks;
+      }
+    }
   }
 
   // Determine next session type
@@ -529,6 +542,106 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'TEST_CHIME': {
         // Trigger chime in content scripts for settings "test sound" button
         await set({ lastChimeTime: Date.now() });
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'ADD_TASK': {
+        const tasks = [...((await get('tasks')).tasks || [])];
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        tasks.push({
+          id,
+          text: (message.text || '').slice(0, 200),
+          estimatedPomos: message.estimatedPomos || 1,
+          completedPomos: 0,
+          completed: false,
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+        });
+        await set({ tasks });
+        sendResponse({ ok: true, id });
+        break;
+      }
+
+      case 'UPDATE_TASK': {
+        const tasks = [...((await get('tasks')).tasks || [])];
+        const idx = tasks.findIndex(t => t.id === message.taskId);
+        if (idx !== -1) {
+          tasks[idx] = { ...tasks[idx], ...message.patch };
+          await set({ tasks });
+          // Sync currentTask if editing active task text
+          const data = await get('activeTaskId');
+          if (data.activeTaskId === message.taskId && message.patch.text != null) {
+            await set({ currentTask: message.patch.text });
+          }
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'DELETE_TASK': {
+        const data = await get('tasks', 'activeTaskId');
+        const tasks = (data.tasks || []).filter(t => t.id !== message.taskId);
+        const updates = { tasks };
+        if (data.activeTaskId === message.taskId) {
+          updates.activeTaskId = null;
+          updates.currentTask = '';
+        }
+        await set(updates);
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'COMPLETE_TASK': {
+        const data = await get('tasks', 'activeTaskId');
+        const tasks = [...(data.tasks || [])];
+        const idx = tasks.findIndex(t => t.id === message.taskId);
+        if (idx !== -1) {
+          const wasCompleted = tasks[idx].completed;
+          tasks[idx] = {
+            ...tasks[idx],
+            completed: !wasCompleted,
+            completedAt: wasCompleted ? null : new Date().toISOString(),
+          };
+          const updates = { tasks };
+          if (!wasCompleted && data.activeTaskId === message.taskId) {
+            updates.activeTaskId = null;
+            updates.currentTask = '';
+          }
+          await set(updates);
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'SET_ACTIVE_TASK': {
+        const data = await get('tasks');
+        const tasks = data.tasks || [];
+        const task = tasks.find(t => t.id === message.taskId);
+        const updates = { activeTaskId: message.taskId };
+        if (task) updates.currentTask = task.text;
+        await set(updates);
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'REORDER_TASKS': {
+        const data = await get('tasks');
+        const tasks = [...(data.tasks || [])];
+        const { fromIndex, toIndex } = message;
+        if (fromIndex >= 0 && fromIndex < tasks.length && toIndex >= 0 && toIndex < tasks.length) {
+          const [moved] = tasks.splice(fromIndex, 1);
+          tasks.splice(toIndex, 0, moved);
+          await set({ tasks });
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'CLEAR_COMPLETED_TASKS': {
+        const data = await get('tasks');
+        const tasks = (data.tasks || []).filter(t => !t.completed);
+        await set({ tasks });
         sendResponse({ ok: true });
         break;
       }
