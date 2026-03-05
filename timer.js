@@ -622,4 +622,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
+// Dynamic version in footer
+const footerVersionEl = document.getElementById('footer-version');
+if (footerVersionEl) {
+  footerVersionEl.textContent = `LoveSpark Focus v${chrome.runtime.getManifest().version}`;
+}
+
 loadState();

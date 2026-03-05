@@ -281,4 +281,11 @@ setInterval(async () => {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+// Dynamic version in footer
+const versionEl = document.getElementById('footer-version');
+if (versionEl) {
+  const v = chrome.runtime.getManifest().version;
+  versionEl.textContent = `\u{1F495} LoveSpark Focus v${v} \u2014 Made with love`;
+}
+
 init();
