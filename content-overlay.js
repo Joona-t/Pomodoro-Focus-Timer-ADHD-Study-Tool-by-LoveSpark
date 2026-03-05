@@ -215,10 +215,12 @@ function destroyShadowDOM() {
 
 function setVisible(visible) {
   if (!visible) {
+    stopTick();
     if (host) host.style.display = 'none';
   } else {
     if (!host) createShadowDOM();
     if (host) host.style.display = '';
+    if (currentState.timerState === 'running') startTick();
   }
 }
 
@@ -301,29 +303,30 @@ function stopTick() {
 
 // ── Web Audio chime ──────────────────────────────────────────────────────────
 
-function playChime(volume) {
+function playChime(volume, type) {
   try {
     const ctx = new AudioContext();
-    const vol = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : 0.5;
-
-    [523.25, 659.25].forEach((freq, i) => {
-      const osc  = ctx.createOscillator();
+    const vol = Math.max(0, Math.min(1, typeof volume === 'number' ? volume : 0.5)) * 0.28;
+    const patterns = {
+      'focus-end':     [523.25, 659.25, 783.99],
+      'break-end':     [783.99, 659.25, 523.25],
+      'longbreak-end': [523.25, 659.25, 783.99, 1046.50],
+    };
+    const notes = patterns[type] || patterns['focus-end'];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const t = ctx.currentTime + i * 0.35;
-
+      const t = ctx.currentTime + i * 0.3;
       osc.type = 'sine';
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(vol * 0.28, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
-
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.9);
+      osc.stop(t + 0.8);
     });
-  } catch (e) {
-    // AudioContext may be blocked if no user interaction — fail silently
-  }
+  } catch (e) {}
 }
 
 // ── Dragging ─────────────────────────────────────────────────────────────────
@@ -376,10 +379,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
   // Handle chime trigger
   if (changes.lastChimeTime) {
-    const vol = currentState.soundEnabled !== false
+    const vol = currentState.soundEnabled
       ? (currentState.soundVolume ?? 0.5)
       : 0;
-    if (vol > 0) playChime(vol);
+    const type = currentState.lastChimeType || 'focus-end';
+    if (vol > 0) playChime(vol, type);
   }
 
   // Timer state changes

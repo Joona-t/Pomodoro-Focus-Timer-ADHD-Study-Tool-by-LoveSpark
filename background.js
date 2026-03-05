@@ -15,6 +15,11 @@ const DEFAULTS = {
   // Stats
   sessionsCompletedToday: 0,
   totalSessionsCompleted: 0,
+  focusMinutesToday: 0,
+  focusMinutesTotal: 0,
+  currentStreak: 0,
+  longestStreak: 0,
+  lastSessionDate: null,
   lastResetDate: todayStr(),
 
   // Settings
@@ -43,7 +48,7 @@ const DEFAULTS = {
   overlayPosition: { x: null, y: null },
 
   // Sound
-  soundEnabled: true,
+  soundEnabled: false,
   soundVolume: 0.5,
   lastChimeTime: null,
 };
@@ -82,6 +87,7 @@ async function initStorage() {
   const resetDate = existing.lastResetDate || today;
   if (resetDate !== today) {
     updates.sessionsCompletedToday = 0;
+    updates.focusMinutesToday = 0;
     updates.lastResetDate = today;
   }
 
@@ -102,8 +108,14 @@ async function recoverTimer(data) {
     if (data.endTime <= now) {
       // Session ended while we were asleep — handle it now
       await handleSessionComplete();
+    } else {
+      // Still running — recreate alarms in case they were lost (system sleep)
+      const remainingMs = data.endTime - now;
+      await chrome.alarms.clear('sessionEnd');
+      await chrome.alarms.create('sessionEnd', { delayInMinutes: remainingMs / 60000 });
+      await chrome.alarms.create('stateSave', { periodInMinutes: 5 / 60 });
+      await scheduleBadgeAlarm();
     }
-    // If still in the future, the alarm should still be set (alarms survive SW suspension)
   }
 }
 
@@ -158,6 +170,9 @@ async function startTimer(overrideRemaining) {
     remainingSeconds: null,
   });
 
+  // Periodic state save for resilience
+  await chrome.alarms.create('stateSave', { periodInMinutes: 5 / 60 });
+
   // Enable site blocking if this is a focus session
   if (data.sessionType === 'focus') {
     await enableSiteBlocking(data.blockedSites, data.siteBlockingEnabled);
@@ -175,6 +190,7 @@ async function pauseTimer() {
 
   await chrome.alarms.clear('sessionEnd');
   await chrome.alarms.clear('badgeTick');
+  await chrome.alarms.clear('stateSave');
 
   await set({
     timerState: 'paused',
@@ -194,6 +210,7 @@ async function resumeTimer() {
 async function resetTimer() {
   await chrome.alarms.clear('sessionEnd');
   await chrome.alarms.clear('badgeTick');
+  await chrome.alarms.clear('stateSave');
 
   const data = await get('sessionType');
   // Keep sessionType but go idle
@@ -229,18 +246,41 @@ async function handleSessionComplete() {
     updates.totalSessionsCompleted = sessionsTotal;
     if (today !== data.lastResetDate) {
       updates.sessionsCompletedToday = 1;
+      updates.focusMinutesToday = 0;
       updates.lastResetDate = today;
+    }
+
+    // Focus minutes tracking
+    const focusMins = data.focusDuration || 25;
+    updates.focusMinutesToday = (data.focusMinutesToday || 0) + focusMins;
+    updates.focusMinutesTotal = (data.focusMinutesTotal || 0) + focusMins;
+
+    // Streak tracking
+    const lastSessionDate = data.lastSessionDate;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (lastSessionDate === yesterday) {
+      updates.currentStreak = (data.currentStreak || 0) + 1;
+    } else if (lastSessionDate === today) {
+      // Same day — streak stays the same
+    } else if (!lastSessionDate) {
+      updates.currentStreak = 1;
+    } else {
+      updates.currentStreak = 1;
+    }
+    updates.lastSessionDate = today;
+    const newStreak = updates.currentStreak ?? data.currentStreak ?? 0;
+    if (newStreak > (data.longestStreak || 0)) {
+      updates.longestStreak = newStreak;
     }
 
     // Save completed task
     const taskText = (data.currentTask || '').trim();
     if (taskText) {
-      const durationKey = 'focusDuration';
       const completedTasks = data.completedTasks || [];
       completedTasks.push({
         text: taskText,
         completedAt: new Date().toISOString(),
-        duration: data[durationKey] || 25,
+        duration: focusMins,
       });
       updates.completedTasks = completedTasks;
     }
@@ -258,6 +298,7 @@ async function handleSessionComplete() {
 
   // Play chime via storage (content scripts watch for this)
   updates.lastChimeTime = Date.now();
+  updates.lastChimeType = wasFocus ? 'focus-end' : (nextType === 'focus' ? 'break-end' : 'longbreak-end');
 
   // Transition to idle with next session type ready
   updates.timerState = 'idle';
@@ -373,13 +414,19 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   } else if (alarm.name === 'badgeTick') {
     await updateBadge();
+  } else if (alarm.name === 'stateSave') {
+    const sdata = await get('timerState', 'endTime');
+    if (sdata.timerState === 'running' && sdata.endTime) {
+      const remaining = Math.max(0, Math.ceil((sdata.endTime - Date.now()) / 1000));
+      await set({ remainingSeconds: remaining });
+    }
   } else if (alarm.name === 'autoStart') {
     await startTimer();
   } else if (alarm.name === 'dailyReset') {
     const today = todayStr();
     const data = await get('lastResetDate');
     if (data.lastResetDate !== today) {
-      await set({ sessionsCompletedToday: 0, lastResetDate: today });
+      await set({ sessionsCompletedToday: 0, focusMinutesToday: 0, lastResetDate: today });
     }
   }
 });
@@ -457,6 +504,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await set({
           sessionsCompletedToday: 0,
           totalSessionsCompleted: 0,
+          focusMinutesToday: 0,
+          focusMinutesTotal: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastSessionDate: null,
           lastResetDate: today,
         });
         sendResponse({ ok: true });
