@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "LoveSpark Focus",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -14,7 +14,10 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
@@ -48,6 +51,9 @@
       "id": "focus@lovespark.suite",
       "strict_min_version": "109.0",
       "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
         "is_exempt": true,
         "justification": "This extension does not collect, transmit, or store any user data."
       }
