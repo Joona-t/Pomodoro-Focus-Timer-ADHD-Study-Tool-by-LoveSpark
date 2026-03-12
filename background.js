@@ -75,7 +75,12 @@ async function set(obj) {
 
 // ── Storage initialization ──────────────────────────────────────────────────
 
+let _initialized = false;
+
 async function initStorage() {
+  if (_initialized) return;
+  _initialized = true;
+
   const existing = await getAll();
   const today = todayStr();
   const updates = {};
@@ -653,6 +658,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+// ── Cross-extension messaging (for LoveSpark Planner) ────────────────────────
+
+chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
+  if (msg.action === 'EXPORT_STATE') {
+    (async () => {
+      const data = await getAll();
+      sendResponse({
+        tasks: data.tasks || [],
+        completedTasks: data.completedTasks || [],
+        stats: {
+          sessionsCompletedToday: data.sessionsCompletedToday || 0,
+          focusMinutesToday: data.focusMinutesToday || 0,
+          totalSessionsCompleted: data.totalSessionsCompleted || 0,
+          currentStreak: data.currentStreak || 0,
+          lastSessionDate: data.lastSessionDate,
+        },
+      });
+    })();
+    return true;
+  }
+});
+
 // ── Startup ─────────────────────────────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(initStorage);
@@ -662,5 +689,5 @@ chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create('dailyReset', { periodInMinutes: 60 });
 });
 
-// Run on service worker boot
-initStorage();
+// initStorage() is called via onInstalled and onStartup listeners above.
+// Removed bare top-level call to prevent triple concurrent execution.

@@ -113,8 +113,19 @@ function getRemainingSeconds(data) {
   return getDurationSeconds(data);
 }
 
-function msg(action, extra = {}) {
-  return chrome.runtime.sendMessage({ action, ...extra });
+async function msg(action, extra = {}) {
+  try {
+    return await chrome.runtime.sendMessage({ action, ...extra });
+  } catch (err) {
+    console.warn('LoveSpark Focus: sendMessage failed, retrying...', err.message);
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      return await chrome.runtime.sendMessage({ action, ...extra });
+    } catch (retryErr) {
+      console.error('LoveSpark Focus: sendMessage retry failed', retryErr.message);
+      return null;
+    }
+  }
 }
 
 // ── Ring update ──────────────────────────────────────────────────────────────
@@ -564,7 +575,9 @@ function playChime(volume, type) {
 // ── Load state ───────────────────────────────────────────────────────────────
 
 async function loadState() {
-  timerData = await msg('GET_STATE');
+  const result = await msg('GET_STATE');
+  if (!result) return; // Service worker unavailable
+  timerData = result;
   render();
   renderTasks();
   if (timerData.timerState === 'running') {

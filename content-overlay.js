@@ -147,14 +147,31 @@ function createShadowDOM() {
   // Expanded pill
   overlayEl = document.createElement('div');
   overlayEl.className = 'overlay-pill';
-  overlayEl.innerHTML = `
-    <span class="session-badge" id="ov-badge">FOCUS</span>
-    <span class="overlay-time" id="ov-time">25:00</span>
-    <div class="overlay-controls">
-      <button class="ctrl-btn" id="ov-minimize" title="Minimize">─</button>
-      <button class="ctrl-btn" id="ov-hide"     title="Hide">✕</button>
-    </div>
-  `;
+  const badge = document.createElement('span');
+  badge.className = 'session-badge';
+  badge.id = 'ov-badge';
+  badge.textContent = 'FOCUS';
+  const time = document.createElement('span');
+  time.className = 'overlay-time';
+  time.id = 'ov-time';
+  time.textContent = '25:00';
+  const controls = document.createElement('div');
+  controls.className = 'overlay-controls';
+  const minBtn = document.createElement('button');
+  minBtn.className = 'ctrl-btn';
+  minBtn.id = 'ov-minimize';
+  minBtn.title = 'Minimize';
+  minBtn.textContent = '─';
+  const hideBtn = document.createElement('button');
+  hideBtn.className = 'ctrl-btn';
+  hideBtn.id = 'ov-hide';
+  hideBtn.title = 'Hide';
+  hideBtn.textContent = '✕';
+  controls.appendChild(minBtn);
+  controls.appendChild(hideBtn);
+  overlayEl.appendChild(badge);
+  overlayEl.appendChild(time);
+  overlayEl.appendChild(controls);
   shadow.appendChild(overlayEl);
 
   // Minimized dot (hidden by default)
@@ -291,14 +308,22 @@ function startTick() {
   stopTick();
   updateDisplay();
   sendBadgeUpdate();
-  tickInterval = setInterval(() => {
+  scheduleTick();
+}
+
+function scheduleTick() {
+  // Use requestAnimationFrame + setTimeout for display updates.
+  // Only updates display locally; badge update sent once on start and on state changes.
+  tickInterval = setTimeout(() => {
+    tickInterval = null;
+    if (currentState.timerState !== 'running') return;
     updateDisplay();
-    sendBadgeUpdate();
+    scheduleTick();
   }, 1000);
 }
 
 function stopTick() {
-  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+  if (tickInterval) { clearTimeout(tickInterval); tickInterval = null; }
 }
 
 // ── Web Audio chime ──────────────────────────────────────────────────────────

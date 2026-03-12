@@ -300,8 +300,25 @@ function playChime(volume, type) {
 
 // ── Load state ────────────────────────────────────────────────────────────────
 
+async function safeSendMessage(msg) {
+  try {
+    return await chrome.runtime.sendMessage(msg);
+  } catch (err) {
+    console.warn('LoveSpark Focus: sendMessage failed, retrying...', err.message);
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      return await chrome.runtime.sendMessage(msg);
+    } catch (retryErr) {
+      console.error('LoveSpark Focus: sendMessage retry failed', retryErr.message);
+      return null;
+    }
+  }
+}
+
 async function loadState() {
-  timerData = await chrome.runtime.sendMessage({ action: 'GET_STATE' });
+  const result = await safeSendMessage({ action: 'GET_STATE' });
+  if (!result) return; // Service worker unavailable
+  timerData = result;
   render();
   renderCompletedTasks(timerData.completedTasks || []);
   if (timerData.timerState === 'running') {
@@ -315,20 +332,20 @@ async function loadState() {
 btnStart.addEventListener('click', async () => {
   const state = timerData.timerState || 'idle';
   if (state === 'running') {
-    await chrome.runtime.sendMessage({ action: 'PAUSE' });
+    await safeSendMessage({ action: 'PAUSE' });
   } else {
-    await chrome.runtime.sendMessage({ action: 'START' });
+    await safeSendMessage({ action: 'START' });
     startTick();
   }
-  timerData = await chrome.runtime.sendMessage({ action: 'GET_STATE' });
-  render();
+  const result = await safeSendMessage({ action: 'GET_STATE' });
+  if (result) { timerData = result; render(); }
 });
 
 btnReset.addEventListener('click', async () => {
   stopTick();
-  await chrome.runtime.sendMessage({ action: 'RESET' });
-  timerData = await chrome.runtime.sendMessage({ action: 'GET_STATE' });
-  render();
+  await safeSendMessage({ action: 'RESET' });
+  const result = await safeSendMessage({ action: 'GET_STATE' });
+  if (result) { timerData = result; render(); }
 });
 
 // Session type tabs (only works when idle)
@@ -336,7 +353,7 @@ tabs.forEach(tab => {
   tab.addEventListener('click', async () => {
     if (timerData.timerState !== 'idle') return;
     const type = tab.dataset.type;
-    await chrome.runtime.sendMessage({ action: 'SET_SESSION_TYPE', sessionType: type });
+    await safeSendMessage({ action: 'SET_SESSION_TYPE', sessionType: type });
     timerData.sessionType = type;
     render();
   });
@@ -384,14 +401,20 @@ function renderCompletedTasks(tasks) {
   }
   completedSection.style.display = '';
   completedCount.textContent = `(${tasks.length})`;
-  completedList.innerHTML = '';
+  completedList.replaceChildren();
   // Show most recent first
   const sorted = [...tasks].reverse();
   for (const task of sorted) {
     const item = document.createElement('div');
     item.className = 'completed-item';
-    item.innerHTML = `<span class="check">✓</span><span class="task-text"></span>`;
-    item.querySelector('.task-text').textContent = task.text;
+    const check = document.createElement('span');
+    check.className = 'check';
+    check.textContent = '✓';
+    const taskText = document.createElement('span');
+    taskText.className = 'task-text';
+    taskText.textContent = task.text;
+    item.appendChild(check);
+    item.appendChild(taskText);
     completedList.appendChild(item);
   }
 }
