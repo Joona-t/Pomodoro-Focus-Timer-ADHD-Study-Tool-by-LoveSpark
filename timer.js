@@ -3,8 +3,11 @@
 
 // ── Theme dropdown ──────────────────────────────────────────────────────────
 
-const THEMES = ['retro', 'dark', 'beige', 'slate'];
-const THEME_NAMES = { retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate' };
+const THEMES = ['retro', 'dark', 'beige', 'slate', 'pink', 'orange', 'warmBrown'];
+const THEME_NAMES = {
+  retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate',
+  pink: 'Sakura Pink', orange: 'Persimmon Orange', warmBrown: 'Espresso',
+};
 
 function applyTheme(t) {
   THEMES.forEach(n => document.body.classList.remove('theme-' + n));
@@ -47,12 +50,6 @@ const SESSION_LABELS = {
   longBreak: 'L O N G  B R E A K',
 };
 
-const RING_GRADIENTS = {
-  focus: 'url(#pinkGradient)',
-  shortBreak: 'url(#purpleGradient)',
-  longBreak: 'url(#tealGradient)',
-};
-
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
 const countdown       = document.getElementById('countdown');
@@ -80,6 +77,7 @@ const pomoInc         = document.getElementById('pomo-inc');
 const btnSaveTask     = document.getElementById('btn-save-task');
 const btnCancelTask   = document.getElementById('btn-cancel-task');
 const btnClearDone    = document.getElementById('btn-clear-done');
+const btnClearAll     = document.getElementById('btn-clear-all');
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -132,11 +130,7 @@ async function msg(action, extra = {}) {
 
 function updateRing(remaining, total) {
   const progress = total > 0 ? remaining / total : 1;
-  const offset = CIRCUMFERENCE * (1 - progress);
-  ringCircle.style.strokeDashoffset = offset;
-  const sessionType = timerData.sessionType || 'focus';
-  ringCircle.removeAttribute('stroke');
-  ringCircle.style.stroke = RING_GRADIENTS[sessionType] || RING_GRADIENTS.focus;
+  ringCircle.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 }
 
 // ── UI render ────────────────────────────────────────────────────────────────
@@ -316,9 +310,10 @@ function renderTasks() {
     taskListEl.appendChild(item);
   });
 
-  // Show/hide clear done button
+  // Show/hide clear buttons
   const hasDone = tasks.some(t => t.completed);
   btnClearDone.style.display = hasDone ? '' : 'none';
+  btnClearAll.style.display = tasks.length > 0 ? '' : 'none';
 }
 
 function createTaskMenu(task) {
@@ -326,13 +321,46 @@ function createTaskMenu(task) {
   menu.className = 'task-action-menu';
 
   const editBtn = document.createElement('button');
-  editBtn.textContent = 'Edit';
+  editBtn.textContent = 'Edit text';
   editBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     openMenuTaskId = null;
     editingTaskId = task.id;
     renderTasks();
   });
+
+  // Pomos stepper row
+  const pomoRow = document.createElement('div');
+  pomoRow.className = 'task-menu-pomo-row';
+
+  const pomoLabel = document.createElement('span');
+  pomoLabel.className = 'task-menu-pomo-label';
+  pomoLabel.textContent = 'Pomos:';
+
+  const pomoMinusBtn = document.createElement('button');
+  pomoMinusBtn.className = 'pomo-stepper-btn';
+  pomoMinusBtn.textContent = '−';
+  pomoMinusBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    adjustTaskPomos(task.id, -1);
+  });
+
+  const pomoValue = document.createElement('span');
+  pomoValue.className = 'task-menu-pomo-value';
+  pomoValue.textContent = task.estimatedPomos || 1;
+
+  const pomoPlusBtn = document.createElement('button');
+  pomoPlusBtn.className = 'pomo-stepper-btn';
+  pomoPlusBtn.textContent = '+';
+  pomoPlusBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    adjustTaskPomos(task.id, 1);
+  });
+
+  pomoRow.appendChild(pomoLabel);
+  pomoRow.appendChild(pomoMinusBtn);
+  pomoRow.appendChild(pomoValue);
+  pomoRow.appendChild(pomoPlusBtn);
 
   const deleteBtn = document.createElement('button');
   deleteBtn.textContent = 'Delete';
@@ -346,8 +374,21 @@ function createTaskMenu(task) {
   });
 
   menu.appendChild(editBtn);
+  menu.appendChild(pomoRow);
   menu.appendChild(deleteBtn);
   return menu;
+}
+
+async function adjustTaskPomos(taskId, delta) {
+  const tasks = timerData.tasks || [];
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  const current = task.estimatedPomos || 1;
+  const next = Math.max(1, Math.min(20, current + delta));
+  if (next === current) return;
+  await msg('UPDATE_TASK', { taskId, patch: { estimatedPomos: next } });
+  timerData = await msg('GET_STATE');
+  renderTasks();
 }
 
 function toggleTaskMenu(taskId) {
@@ -499,6 +540,19 @@ btnClearDone.addEventListener('click', async () => {
     await msg('CLEAR_COMPLETED_TASKS');
   }
   timerData = await msg('GET_STATE');
+  renderTasks();
+});
+
+btnClearAll.addEventListener('click', async () => {
+  if (!confirm('Clear all tasks? This cannot be undone.')) return;
+  try {
+    await msg('CLEAR_ALL_TASKS');
+  } catch (e) {
+    await new Promise(r => setTimeout(r, 200));
+    await msg('CLEAR_ALL_TASKS');
+  }
+  timerData = await msg('GET_STATE');
+  render();
   renderTasks();
 });
 

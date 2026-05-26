@@ -2,8 +2,11 @@
 'use strict';
 
 // Theme dropdown
-const THEMES = ['retro', 'dark', 'beige', 'slate'];
-const THEME_NAMES = { retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate' };
+const THEMES = ['retro', 'dark', 'beige', 'slate', 'pink', 'orange', 'warmBrown'];
+const THEME_NAMES = {
+  retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate',
+  pink: 'Sakura Pink', orange: 'Persimmon Orange', warmBrown: 'Espresso',
+};
 function applyTheme(t) {
   THEMES.forEach(n => document.body.classList.remove('theme-' + n));
   document.body.classList.add('theme-' + t);
@@ -33,6 +36,11 @@ function applyTheme(t) {
     applyTheme(theme || 'retro');
   });
 })();
+
+// ── Back button ──────────────────────────────────────────────────────────────
+document.getElementById('back-btn').addEventListener('click', () => {
+  location.href = 'timer.html';
+});
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let blockedSites = [];

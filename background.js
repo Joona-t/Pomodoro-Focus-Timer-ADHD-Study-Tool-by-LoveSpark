@@ -651,6 +651,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
 
+      case 'CLEAR_ALL_TASKS': {
+        await set({ tasks: [], activeTaskId: null, currentTask: '' });
+        sendResponse({ ok: true });
+        break;
+      }
+
       default:
         sendResponse({ ok: false, error: 'Unknown action' });
     }

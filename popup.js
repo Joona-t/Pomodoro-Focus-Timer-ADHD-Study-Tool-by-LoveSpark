@@ -2,8 +2,11 @@
 'use strict';
 
 // Theme dropdown
-const THEMES = ['retro', 'dark', 'beige', 'slate'];
-const THEME_NAMES = { retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate' };
+const THEMES = ['retro', 'dark', 'beige', 'slate', 'pink', 'orange', 'warmBrown'];
+const THEME_NAMES = {
+  retro: 'Retro Pink', dark: 'Dark', beige: 'Beige', slate: 'Slate',
+  pink: 'Sakura Pink', orange: 'Persimmon Orange', warmBrown: 'Espresso',
+};
 function applyTheme(t) {
   THEMES.forEach(n => document.body.classList.remove('theme-' + n));
   document.body.classList.add('theme-' + t);
@@ -113,20 +116,9 @@ function getRemainingSeconds(data) {
 
 // ── Ring update ────────────────────────────────────────────────────────────────
 
-const RING_GRADIENTS = {
-  focus: 'url(#pinkGradient)',
-  shortBreak: 'url(#purpleGradient)',
-  longBreak: 'url(#tealGradient)',
-};
-
 function updateRing(remaining, total) {
   const progress = total > 0 ? remaining / total : 1;
-  const offset = CIRCUMFERENCE * (1 - progress);
-  ringCircle.style.strokeDashoffset = offset;
-
-  const sessionType = timerData.sessionType || 'focus';
-  ringCircle.removeAttribute('stroke');
-  ringCircle.style.stroke = RING_GRADIENTS[sessionType] || RING_GRADIENTS.focus;
+  ringCircle.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 }
 
 // ── UI render ──────────────────────────────────────────────────────────────────
@@ -319,6 +311,11 @@ async function loadState() {
   const result = await safeSendMessage({ action: 'GET_STATE' });
   if (!result) return; // Service worker unavailable
   timerData = result;
+  // Ensure saved task persists across popup opens
+  if (!timerData.currentTask) {
+    const stored = await chrome.storage.local.get('currentTask');
+    if (stored.currentTask) timerData.currentTask = stored.currentTask;
+  }
   render();
   renderCompletedTasks(timerData.completedTasks || []);
   if (timerData.timerState === 'running') {

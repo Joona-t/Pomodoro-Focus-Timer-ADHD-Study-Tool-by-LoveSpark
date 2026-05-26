@@ -10,13 +10,14 @@
 <body>
 
 <header>
+  <button id="back-btn" class="back-btn" title="Back to timer" aria-label="Back to timer">←</button>
   <img src="mascot.png" alt="Sparky — LoveSpark mascot" class="header-logo">
   <div>
     <h1 class="header-title">LoveSpark Focus</h1>
     <span class="header-sub">Settings</span>
   </div>
   <div class="theme-dropdown" id="themeDropdown">
-      <button class="theme-dropdown-trigger" id="themeToggle">
+      <button class="theme-dropdown-trigger" id="themeToggle" aria-expanded="false" aria-haspopup="menu">
         <span id="themeLabel">Retro Pink</span> ▾
       </button>
       <div class="theme-dropdown-menu" id="themeMenu">
@@ -25,6 +26,9 @@
         <button class="theme-option" data-theme="dark">Dark</button>
         <button class="theme-option" data-theme="beige">Beige</button>
         <button class="theme-option" data-theme="slate">Slate</button>
+        <button class="theme-option" data-theme="pink">Sakura Pink</button>
+        <button class="theme-option" data-theme="orange">Persimmon Orange</button>
+        <button class="theme-option" data-theme="warmBrown">Espresso</button>
       </div>
     </div>
 </header>
@@ -208,7 +212,7 @@
     </div>
 
     <div class="btn-row" style="margin-top:16px">
-      <button id="reset-stats" class="btn btn-danger">🗑️ Reset Stats</button>
+      <button id="reset-stats" class="btn btn-danger" aria-label="Reset all statistics">🗑️ Reset Stats</button>
     </div>
   </section>
 

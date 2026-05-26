@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LoveSpark Focus</title>
   <link rel="stylesheet" href="lib/lovespark-fonts.css">
+  <link rel="stylesheet" href="lib/lovespark-base.css">
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="lib/lovespark-footer.css">
 </head>
-<body>
+<body role="dialog" aria-labelledby="popup-title">
   <div class="container">
 
     <!-- Header -->
@@ -16,12 +17,12 @@
       <div class="header-left">
         <img src="mascot.png" alt="Sparky — LoveSpark mascot" class="sparky" id="sparky">
         <div class="title-block">
-          <span class="title">LoveSpark</span>
+          <span class="title" id="popup-title">LoveSpark</span>
           <span class="subtitle">Focus</span>
         </div>
       </div>
       <div class="theme-dropdown" id="themeDropdown">
-      <button class="theme-dropdown-trigger" id="themeToggle">
+      <button class="theme-dropdown-trigger" id="themeToggle" aria-expanded="false" aria-haspopup="menu">
         <span id="themeLabel">Retro Pink</span> ▾
       </button>
       <div class="theme-dropdown-menu" id="themeMenu">
@@ -30,6 +31,9 @@
         <button class="theme-option" data-theme="dark">Dark</button>
         <button class="theme-option" data-theme="beige">Beige</button>
         <button class="theme-option" data-theme="slate">Slate</button>
+        <button class="theme-option" data-theme="pink">Sakura Pink</button>
+        <button class="theme-option" data-theme="orange">Persimmon Orange</button>
+        <button class="theme-option" data-theme="warmBrown">Espresso</button>
       </div>
     </div>
       <button class="open-tab-btn" id="btn-open-tab" title="Open full timer">&#x26F6;</button>
@@ -49,26 +53,11 @@
     <!-- Progress ring + countdown -->
     <div class="ring-container">
       <svg class="progress-ring" viewBox="0 0 120 120" aria-hidden="true">
-        <defs>
-          <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#E8457C"/>
-            <stop offset="100%" stop-color="#C084FC"/>
-          </linearGradient>
-          <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#C084FC"/>
-            <stop offset="100%" stop-color="#818CF8"/>
-          </linearGradient>
-          <linearGradient id="tealGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#5EEAD4"/>
-            <stop offset="100%" stop-color="#0D9488"/>
-          </linearGradient>
-        </defs>
         <!-- Track ring -->
         <circle class="ring-track" cx="60" cy="60" r="52" fill="none" stroke-width="8"/>
         <!-- Progress ring -->
         <circle id="progress-ring-circle"
           cx="60" cy="60" r="52" fill="none"
-          stroke="url(#pinkGradient)"
           stroke-width="8"
           stroke-linecap="round"
           stroke-dasharray="326.73"
@@ -132,6 +121,7 @@
 
   </div>
   <script src="lib/lovespark-footer.js"></script>
+  <script src="lib/lovespark-theme.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
