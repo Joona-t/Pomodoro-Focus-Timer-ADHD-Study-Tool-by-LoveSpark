@@ -64,6 +64,7 @@ const soundEnabled      = document.getElementById('soundEnabled');
 const soundVolume       = document.getElementById('soundVolume');
 const volumeDisplay     = document.getElementById('volume-display');
 const testSoundBtn      = document.getElementById('test-sound');
+const externalSyncEnabled = document.getElementById('externalSyncEnabled');
 const overlayVisible    = document.getElementById('overlayVisible');
 const resetPositionBtn  = document.getElementById('reset-position');
 const resetStatsBtn     = document.getElementById('reset-stats');
@@ -108,6 +109,9 @@ async function init() {
   siteBlockEnabled.checked = data.siteBlockingEnabled !== false;
   blockedSites = [...(data.blockedSites || [])];
   renderSiteList();
+
+  // Companion apps (secure default: off)
+  externalSyncEnabled.checked = !!data.externalSyncEnabled;
 
   // Sound
   soundEnabled.checked = !!data.soundEnabled;
@@ -210,6 +214,9 @@ autoStartBreaks.addEventListener('change', () =>
 
 autoStartFocus.addEventListener('change', () =>
   saveSettings({ autoStartFocus: autoStartFocus.checked }));
+
+externalSyncEnabled.addEventListener('change', () =>
+  saveSettings({ externalSyncEnabled: externalSyncEnabled.checked }));
 
 // ── Site blocking ──────────────────────────────────────────────────────────────
 

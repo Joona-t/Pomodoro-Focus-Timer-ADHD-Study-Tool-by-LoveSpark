@@ -669,6 +669,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'EXPORT_STATE') {
     (async () => {
+      // Secure-by-default: external apps can only read data when the user has
+      // explicitly enabled it in Settings. Without this gate any installed
+      // extension could read the user's tasks + focus stats (CSO F1).
+      const { externalSyncEnabled } = await get('externalSyncEnabled');
+      if (!externalSyncEnabled) {
+        sendResponse({ error: 'External sync is disabled. Enable it in LoveSpark Focus settings.' });
+        return;
+      }
       const data = await getAll();
       sendResponse({
         tasks: data.tasks || [],
